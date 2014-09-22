@@ -1,0 +1,11 @@
+target/*
+bin
+src/main/webapp/VAADIN/gwt-unitCache
+src/main/webapp/VAADIN/widgetsets
+src/main/webapp/VAADIN/themes/biopama
+hibernate.properties
+runtime.properties
+.project
+.classpath
+.DS_Store
+.settings/*
