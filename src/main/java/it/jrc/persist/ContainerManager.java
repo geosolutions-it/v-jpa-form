@@ -52,33 +52,8 @@ public class ContainerManager<T> {
 
         
         RoleManager roleManager = dao.getRoleManager();
-        String target = roleManager.getUrlForClass(clazz);
-        
-        canCreate = roleManager.canCreate(target);
-        canUpdate = roleManager.canUpdate(target);
-        canDelete = roleManager.canDelete(target);
-
-    }
-    public ContainerManager(Dao dao, Class<T> clazz, boolean useCache) {
-        this.dao = dao;
-        this.clazz = clazz;
-
-        container = new JPAContainer<T>(clazz);
-        
-        CachingEntityProvider<T> entityProvider = new CachingLocalEntityProvider<T>(clazz);
-        entityProvider.setCacheEnabled(true);
-        entityProvider.setEntityManagerProvider(dao);
-//        LocalEntityProvider<T> entityProvider = new LocalEntityProvider<T>(clazz, entityManagerProvider);
-        
-//        entityProvider.setEntitiesDetached(false);
-        container.setEntityProvider(entityProvider);
-        //important! read the docs
-        container.isAutoCommit();
-        
-        RoleManager roleManager = dao.getRoleManager();
-        String target = roleManager.getUrlForClass(clazz);
-        
-        logger.info("Target: " + target);
+//        String target = roleManager.getUrlForClass(clazz);
+        String target = clazz.getSimpleName();
         
         canCreate = roleManager.canCreate(target);
         canUpdate = roleManager.canUpdate(target);

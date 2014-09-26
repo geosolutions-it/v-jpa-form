@@ -60,8 +60,6 @@ public class RoleManager {
 
     public boolean checkPermission(Action action, String target) {
         
-        System.out.println(target);
-        
         if (role.getIsSuperUser()) {
             return true;
         }
