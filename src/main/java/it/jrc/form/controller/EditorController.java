@@ -173,7 +173,7 @@ public abstract class EditorController<T> extends Panel {
         }
 
         entity = containerManager.findEntity(id);
-
+        fgm.setEntity(entity);
         /*
          * Subclasses may define tasks to perform post-commit.
          */
