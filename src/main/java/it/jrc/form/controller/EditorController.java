@@ -82,7 +82,7 @@ public abstract class EditorController<T> extends Panel {
 
         view.buildForm(fgm.getFieldGroupReprs());
 
-        buildSubmitPanel(view.getSubmitPanel());
+        buildSubmitPanel(view.getTopSubmitPanel());
 
     }
 

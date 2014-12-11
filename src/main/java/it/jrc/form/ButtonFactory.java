@@ -23,7 +23,7 @@ public class ButtonFactory {
 
     public static final String HELP_ICON = "../runo/icons/16/help.png";
 
-    public static final String SAVE_BUTTON_CAPTION = "Save";
+    public static final String SAVE_BUTTON_CAPTION = "Submit";
 
     public static final String EDIT_BUTTON_CAPTION = "Edit";
 

@@ -19,7 +19,7 @@ public class DefaultEditorView<T> extends CssLayout implements IEditorView<T>  {
 
 
     @Override
-    public SubmitPanel getSubmitPanel() {
+    public SubmitPanel getTopSubmitPanel() {
         return submitPanel;
     }
 
@@ -32,6 +32,12 @@ public class DefaultEditorView<T> extends CssLayout implements IEditorView<T>  {
         }
         
         addComponent(submitPanel);
+    }
+
+
+    @Override
+    public SubmitPanel getBottomSubmitPanel() {
+        return submitPanel;
     }
 
 }

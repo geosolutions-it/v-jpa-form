@@ -21,7 +21,15 @@ public interface IEditorView<T> extends Component {
      * 
      * @return
      */
-    public SubmitPanel getSubmitPanel();
+    public SubmitPanel getTopSubmitPanel();
+    
+    /**
+     * Acting like a factory here, the view provides the panel. Event management
+     * is up to the controller.
+     * 
+     * @return
+     */
+    public SubmitPanel getBottomSubmitPanel();
 
     /**
      * Add fields to form. Implementations are expected to only manage the

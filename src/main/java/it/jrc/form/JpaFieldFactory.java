@@ -207,7 +207,7 @@ public class JpaFieldFactory<T> {
 
         TwinColSelect l = new TwinColSelect(AdminStringUtil.splitCamelCase(prop
                 .getName()));
-        l.setWidth("25em");
+        l.setWidth("600px");
 
         /*
          * Get the type the attribute contains
@@ -233,7 +233,7 @@ public class JpaFieldFactory<T> {
 
         TwinColSelect l = new TwinColSelect(AdminStringUtil.splitCamelCase(prop
                 .getName()));
-        l.setWidth("25em");
+        l.setWidth("600px");
 
         /*
          * Get the type the attribute contains
