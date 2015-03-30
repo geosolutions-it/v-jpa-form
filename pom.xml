@@ -46,8 +46,18 @@
 			<artifactId>v-guice</artifactId>
 			<version>${v-guice.version}</version>
 		</dependency>
-
-
+        <!-- Nimbus OAuth 2.0 -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>oauth2-oidc-sdk</artifactId>
+            <version>2.10</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.8</version>
+        </dependency>
+        
 		<!-- Zip -->
 		<dependency>
 			<groupId>net.lingala.zip4j</groupId>
@@ -57,6 +67,12 @@
 
 		<!-- Common -->
 		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>${guava.version}</version>
+		</dependency>
+        
+        <dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>${guava.version}</version>

@@ -6,6 +6,7 @@ import it.jrc.domain.auth.Role;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -18,7 +19,6 @@ import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
-import javax.security.auth.login.LoginContext;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -44,6 +44,25 @@ import org.slf4j.LoggerFactory;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.nimbusds.jwt.ReadOnlyJWTClaimsSet;
+import com.nimbusds.oauth2.sdk.AuthorizationCode;
+import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
+import com.nimbusds.oauth2.sdk.AuthorizationRequest;
+import com.nimbusds.oauth2.sdk.ResponseType;
+import com.nimbusds.oauth2.sdk.Scope;
+import com.nimbusds.oauth2.sdk.SerializeException;
+import com.nimbusds.oauth2.sdk.TokenRequest;
+import com.nimbusds.oauth2.sdk.auth.ClientSecretPost;
+import com.nimbusds.oauth2.sdk.auth.Secret;
+import com.nimbusds.oauth2.sdk.http.HTTPResponse;
+import com.nimbusds.oauth2.sdk.id.ClientID;
+import com.nimbusds.oauth2.sdk.id.State;
+import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
+import com.nimbusds.openid.connect.sdk.OIDCAccessTokenResponse;
+import com.nimbusds.openid.connect.sdk.UserInfoErrorResponse;
+import com.nimbusds.openid.connect.sdk.UserInfoRequest;
+import com.nimbusds.openid.connect.sdk.UserInfoResponse;
+import com.nimbusds.openid.connect.sdk.UserInfoSuccessResponse;
 
 import freemarker.template.Configuration;
 import freemarker.template.Template;
@@ -73,6 +92,8 @@ public class AuthServlet extends HttpServlet {
     private static final String OPENID_RETURN_TO = "openid.return_to";
     protected static final String OPENID_OP_ENDPOINT = "openid.op_endpoint";
     private static final Object GOOGLE_ENDPOINT = "https://www.google.com/accounts/o8/ud";
+    
+    private static final String OPENIDCONNECT_TYPE = "openidconnect";
 
     private final Configuration templateConf;
 
@@ -81,10 +102,18 @@ public class AuthServlet extends HttpServlet {
     private final OpenIdManager manager;
 
     private String contextPath;
+    private ClientID clientId;
+    private Secret clientSecret;
+    private URL tokenUrl;
+    private URL profileUrl;
 
     @Inject
     public AuthServlet(OpenIdManager manager,
             @Named("context_path") String contextPath,
+            @Named("openid_clientid") String clientId,
+            @Named("openid_clientsecret") String clientSecret,
+            @Named("token_url") String tokenUrl,
+            @Named("profile_url") String profileUrl,
             Configuration templateConf, EntityManagerFactory emf) {
 
         this.em = emf.createEntityManager();
@@ -92,7 +121,14 @@ public class AuthServlet extends HttpServlet {
 
         this.templateConf = templateConf;
         this.contextPath = contextPath;
-
+        this.clientId = new ClientID(clientId);
+        this.clientSecret = new Secret(clientSecret);
+        try {
+            this.tokenUrl = new URL(tokenUrl);
+            this.profileUrl = new URL(profileUrl);
+        } catch (MalformedURLException e) {
+            logger.error("Malformed token_url configuration parameter", e);
+        }
     }
 
     @Override
@@ -107,6 +143,13 @@ public class AuthServlet extends HttpServlet {
         String openIdProvider = request.getParameter("op");
         String openidEndpoint = request.getParameter(OPENID_OP_ENDPOINT);
         String action = request.getParameter("action");
+        
+        // type of auth to use, currently we support OpenID-Connect (for Google)
+        // and OAuth 2.0 (for others)
+        String type = request.getParameter("type");
+        // parameters used by OpenID-Connect (state, code)
+        String state = request.getParameter("state");
+        String code = request.getParameter("code");
 
         String loginUrl = request.getParameter("servlet_url");
         if (loginUrl == null) {
@@ -146,9 +189,15 @@ public class AuthServlet extends HttpServlet {
          * Catch redirect from provider
          */
         if (openidEndpoint != null) {
-
+            // OAuth
             verifyOpenIdReply(request, response, currentUser, openidEndpoint);
-
+        } else if (code != null && state != null) {
+            try {
+                verifyOpenIdConnectReply(request, response, currentUser, state, code, loginUri);
+            } catch (OpenIdException e) {
+                showLoginError(request, response, e, "Could not authorize the user: ");
+                return;
+            }
         } else if (openIdProvider != null) {
 
             String lookup = null;
@@ -156,29 +205,65 @@ public class AuthServlet extends HttpServlet {
             lookup = request.getParameter("url");
 
             try {
-                doOpenIdRequest(request, response, lookup, loginUri);
+                doOpenIdRequest(request, response, lookup, loginUri, type);
             } catch (OpenIdException e) {
 
-                StringBuilder msg = new StringBuilder();
-                msg.append("Could not resolve this OpenID: ");
-                msg.append("Cause: ");
-                msg.append(e.getCause().getMessage());
-                msg.append("\n");
-                msg.append("Host = " + request.getServerName());
-                msg.append("\n");
-                msg.append("Port = " + request.getServerPort());
-                msg.append("\n");
-
-                for (StackTraceElement st : e.getCause().getStackTrace()) {
-                    msg.append(st.toString());
-                    msg.append("\n");
-                }
-                showLoginPage(request, response, msg.toString());
+                showLoginError(request, response, e, "Could not resolve this OpenID: ");
                 return;
             }
 
         } else {
             showLoginPage(request, response, null);
+        }
+    }
+
+    private void showLoginError(HttpServletRequest request, HttpServletResponse response,
+            OpenIdException e, String message) throws IOException {
+        StringBuilder msg = new StringBuilder();
+        msg.append(message);
+        msg.append("Cause: ");
+        msg.append(e.getCause().getMessage());
+        msg.append("\n");
+        msg.append("Host = " + request.getServerName());
+        msg.append("\n");
+        msg.append("Port = " + request.getServerPort());
+        msg.append("\n");
+   
+        for (StackTraceElement st : e.getCause().getStackTrace()) {
+            msg.append(st.toString());
+            msg.append("\n");
+        }
+        showLoginPage(request, response, msg.toString());
+    }
+
+    private void verifyOpenIdConnectReply(HttpServletRequest request, HttpServletResponse response,
+            Subject currentUser, String state, String code, URI loginUri) {
+        if (request.getSession().getAttribute("state") == null || !state.equals(request.getSession().getAttribute("state"))) {
+              response.setStatus(401);
+        } else {
+            try {
+                TokenRequest tokenRequest = new TokenRequest(
+                        tokenUrl,
+                        new ClientSecretPost(clientId, clientSecret),
+                        new AuthorizationCodeGrant(new AuthorizationCode(code),loginUri.toURL())
+                );
+                HTTPResponse resp = tokenRequest.toHTTPRequest().send();
+                OIDCAccessTokenResponse tokenResponse = OIDCAccessTokenResponse.parse(resp);
+                ReadOnlyJWTClaimsSet claims = tokenResponse.getIDToken().getJWTClaimsSet();
+                
+                Authentication authentication = new Authentication();
+                authentication.setEmail(claims.getClaim("email").toString());
+                authentication.setIdentity(authentication.getEmail());
+                authenticateFromIdentity(request, response, currentUser, loginUri, authentication, authentication.getEmail(), (BearerAccessToken)tokenResponse.getAccessToken());
+            } catch (SerializeException e) {
+                throw new OpenIdException("Cannot contact token service", e);
+            } catch (IOException e) {
+                throw new OpenIdException("Error sending token request", e);
+            } catch (com.nimbusds.oauth2.sdk.ParseException e) {
+                throw new OpenIdException("Error parsing token response", e);
+            } catch (ParseException e) {
+                throw new OpenIdException("Error parsing token claims", e);
+            }
         }
     }
 
@@ -259,20 +344,54 @@ public class AuthServlet extends HttpServlet {
      * @throws IOException
      */
     private void doOpenIdRequest(HttpServletRequest request,
-            HttpServletResponse response, String lookup, URI loginUri)
+            HttpServletResponse response, String lookup, URI loginUri, String type)
             throws IOException {
+        if(type.equalsIgnoreCase(OPENIDCONNECT_TYPE)) {
+            doOpenIdConnectRequest(request, response, lookup, loginUri);
+        } else {
+            doOAuthRequest(request, response, lookup, loginUri);
+        }
+    }
 
+    private void doOAuthRequest(HttpServletRequest request, HttpServletResponse response,
+            String lookup, URI loginUri) throws IOException {
         Endpoint endpoint = manager.lookupEndpoint(lookup);
         Association association = manager.lookupAssociation(endpoint);
         request.getSession().setAttribute(OPENID_MAC,
                 association.getRawMacKey());
         request.getSession().setAttribute(OPENID_ALIAS, endpoint.getAlias());
-
+   
         // seems pointless but cleans the URL
         manager.setReturnTo(getLoginUriAsStringFromURLWhichDoesSomeCleaningOnlyReally(loginUri));
-
+   
         String url = manager.getAuthenticationUrl(endpoint, association);
         response.sendRedirect(url);
+    }
+
+    private void doOpenIdConnectRequest(HttpServletRequest request, HttpServletResponse response, String lookup, URI loginUri)
+            throws MalformedURLException, IOException {
+        // generate an anti-forging state, that will be verified
+        // on server authorization request 
+        State state = new State();
+        request.getSession().setAttribute("state", state.getValue());
+        ResponseType responseType = new ResponseType();
+        responseType.add(ResponseType.Value.CODE);
+        
+        // redirect to OpenId-Connect authorization service
+        AuthorizationRequest req = new AuthorizationRequest(
+                new URL(lookup),
+                responseType,
+                clientId,
+                new URL(getLoginUriAsStringFromURLWhichDoesSomeCleaningOnlyReally(loginUri)),
+                Scope.parse("openid email profile"),
+                state
+                );
+        
+        try {
+            response.sendRedirect(req.toHTTPRequest().getURL().toExternalForm()+"?"+req.toHTTPRequest().getQuery());
+        } catch (SerializeException e) {
+            throw new OpenIdException("Cannot redirect to OpenID Connect service.");
+        }
     }
 
     /**
@@ -367,7 +486,7 @@ public class AuthServlet extends HttpServlet {
      * 
      */
     private void createUser(Authentication authentication, boolean canLogin,
-            URI returnTo) {
+            URI returnTo, BearerAccessToken token) {
 
         Role role = new Role();
         // role.setIdentity(authentication.getIdentity());
@@ -375,8 +494,30 @@ public class AuthServlet extends HttpServlet {
         role.setIsSuperUser(true);
 
         role.setEmail(authentication.getEmail());
-        role.setFirstName(authentication.getFirstname());
-        role.setLastName(authentication.getLastname());
+        if(token != null) {
+            // get profile info for user
+            UserInfoRequest userRequest = new UserInfoRequest(profileUrl, token);
+            try {
+                HTTPResponse resp = userRequest.toHTTPRequest().send();
+                UserInfoResponse userInfo = UserInfoResponse.parse(resp);
+                if(userInfo instanceof UserInfoErrorResponse) {
+                    throw new OpenIdException("Error in retrieving user profile for " + authentication.getEmail());
+                }
+                UserInfoSuccessResponse profile = (UserInfoSuccessResponse)userInfo;
+                role.setFirstName(profile.getUserInfo().getName());
+                role.setLastName(profile.getUserInfo().getFamilyName());
+            } catch (SerializeException e) {
+                throw new OpenIdException("Cannot contact profile service", e);
+            } catch (IOException e) {
+                throw new OpenIdException("Cannot get answer from profile service", e);
+            } catch (com.nimbusds.oauth2.sdk.ParseException e) {
+                throw new OpenIdException("Cannot read answer from profile service", e);
+            }
+        } else {
+            role.setFirstName(authentication.getFirstname());
+            role.setLastName(authentication.getLastname());
+        }
+        em.getTransaction().begin();
         em.persist(role);
 
         OpenIdIdentity id = new OpenIdIdentity();
@@ -388,6 +529,7 @@ public class AuthServlet extends HttpServlet {
         }
         id.setRole(role);
         em.persist(id);
+        em.getTransaction().commit();
 
     }
 
@@ -471,6 +613,12 @@ public class AuthServlet extends HttpServlet {
         if (openidEndpoint.equals(GOOGLE_ENDPOINT)) {
             identity = authentication.getEmail();
         }
+        authenticateFromIdentity(request, response, currentUser, returnTo, authentication, identity, null);
+    }
+
+    private void authenticateFromIdentity(HttpServletRequest request, HttpServletResponse response,
+            Subject currentUser, URI returnTo, Authentication authentication, String identity, BearerAccessToken accessToken)
+            throws IOException {
         UsernamePasswordToken token = new UsernamePasswordToken(identity, "",
                 "");
 
@@ -483,7 +631,7 @@ public class AuthServlet extends HttpServlet {
             }
         } catch (UnknownAccountException uae) {
             logger.debug("Unknown account: " + token.getUsername());
-            createUser(authentication, true, returnTo);
+            createUser(authentication, true, returnTo, accessToken);
             redirectToApp(response, returnTo);
             // authFailureMessage = String
             // .format("%s, your account has been created but requires unlocking by an administrator.",
@@ -495,7 +643,7 @@ public class AuthServlet extends HttpServlet {
             logger.info("Locked account: " + token.getUsername());
             authFailureMessage = String
                     .format("%s, your account exists but currently locked. Contact your administrator to unlock it.",
-                            authentication.getFirstname());
+                            token.getUsername());
         } catch (ExcessiveAttemptsException eae) {
             logger.info("An excessive number of login attempts have been made: "
                     + token.getUsername());
