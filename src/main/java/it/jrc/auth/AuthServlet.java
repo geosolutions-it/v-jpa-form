@@ -106,6 +106,7 @@ public class AuthServlet extends HttpServlet {
     private Secret clientSecret;
     private URL tokenUrl;
     private URL profileUrl;
+    private String loginPageUrl;
 
     @Inject
     public AuthServlet(OpenIdManager manager,
@@ -114,6 +115,7 @@ public class AuthServlet extends HttpServlet {
             @Named("openid_clientsecret") String clientSecret,
             @Named("token_url") String tokenUrl,
             @Named("profile_url") String profileUrl,
+            @Named("login_page_url") String loginPageUrl,
             Configuration templateConf, EntityManagerFactory emf) {
 
         this.em = emf.createEntityManager();
@@ -123,6 +125,7 @@ public class AuthServlet extends HttpServlet {
         this.contextPath = contextPath;
         this.clientId = new ClientID(clientId);
         this.clientSecret = new Secret(clientSecret);
+        this.loginPageUrl = loginPageUrl;
         try {
             this.tokenUrl = new URL(tokenUrl);
             this.profileUrl = new URL(profileUrl);
@@ -151,10 +154,15 @@ public class AuthServlet extends HttpServlet {
         String state = request.getParameter("state");
         String code = request.getParameter("code");
 
-        String loginUrl = request.getParameter("servlet_url");
+        String loginUrl = loginPageUrl;
+        if(loginUrl == null || loginUrl.isEmpty()) {
+            loginUrl = request.getParameter("servlet_url");
+        }
+        
         if (loginUrl == null) {
             loginUrl = request.getRequestURL().toString();
         }
+        
         URI loginUri = this.getLoginURI(loginUrl);
 
         /*
@@ -378,17 +386,20 @@ public class AuthServlet extends HttpServlet {
         responseType.add(ResponseType.Value.CODE);
         
         // redirect to OpenId-Connect authorization service
+        String finalLoginUri = getLoginUriAsStringFromURLWhichDoesSomeCleaningOnlyReally(loginUri);
         AuthorizationRequest req = new AuthorizationRequest(
                 new URL(lookup),
                 responseType,
                 clientId,
-                new URL(getLoginUriAsStringFromURLWhichDoesSomeCleaningOnlyReally(loginUri)),
+                new URL(finalLoginUri),
                 Scope.parse("openid email profile"),
                 state
                 );
         
         try {
-            response.sendRedirect(req.toHTTPRequest().getURL().toExternalForm()+"?"+req.toHTTPRequest().getQuery());
+            
+            String location = req.toHTTPRequest().getURL().toExternalForm()+"?"+req.toHTTPRequest().getQuery();
+            response.sendRedirect(location);
         } catch (SerializeException e) {
             throw new OpenIdException("Cannot redirect to OpenID Connect service.");
         }
@@ -554,7 +565,6 @@ public class AuthServlet extends HttpServlet {
         }
         root.put("loginReturnTo", returnTo);
         root.put("contextPath", contextPath);
-        System.out.println("contextPath: " + contextPath);
         root.put("authMessage", authenticationMessage);
         root.put("originalHost", req.getHeader("host"));
 

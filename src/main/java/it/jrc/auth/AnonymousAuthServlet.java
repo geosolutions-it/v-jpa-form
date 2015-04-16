@@ -26,7 +26,7 @@ public class AnonymousAuthServlet extends AuthServlet {
     public AnonymousAuthServlet(OpenIdManager manager, 
             @Named("context_path") String contextPath,
             Configuration templateConf, EntityManagerFactory emf) {
-        super(manager, contextPath, null, null, null, null, templateConf, emf);
+        super(manager, contextPath, null, null, null, null, null, templateConf, emf);
     }
 
     @Override
