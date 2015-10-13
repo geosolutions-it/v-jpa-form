@@ -6,13 +6,9 @@ import it.jrc.auth.RoleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vaadin.addon.jpacontainer.CachingEntityProvider;
 import com.vaadin.addon.jpacontainer.EntityItem;
 import com.vaadin.addon.jpacontainer.JPAContainer;
-import com.vaadin.addon.jpacontainer.JPAContainerFactory;
-import com.vaadin.addon.jpacontainer.provider.CachingLocalEntityProvider;
-import com.vaadin.addon.jpacontainer.provider.LocalEntityProvider;
-import com.vaadin.addon.jpacontainer.provider.MutableLocalEntityProvider;
+import com.vaadin.addon.jpacontainer.provider.BatchableLocalEntityProvider;
 
 /**
  * Manages container construction and entity persistence
@@ -41,7 +37,8 @@ public class ContainerManager<T> {
         container = new JPAContainer<T>(clazz);
         
         
-        MutableLocalEntityProvider<T> entityProvider = new MutableLocalEntityProvider<T>(clazz);
+        BatchableLocalEntityProvider<T> entityProvider = new BatchableLocalEntityProvider<T>(clazz);
+        
 //        LocalEntityProvider<T> entityProvider = new LocalEntityProvider<T>(clazz, dao);
         entityProvider.setEntityManagerProvider(dao);
         
