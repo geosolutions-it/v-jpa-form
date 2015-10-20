@@ -9,3 +9,4 @@ runtime.properties
 .classpath
 .DS_Store
 .settings/*
+/target/
