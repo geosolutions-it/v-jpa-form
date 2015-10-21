@@ -502,7 +502,7 @@ public class AuthServlet extends HttpServlet {
         Role role = new Role();
         // role.setIdentity(authentication.getIdentity());
         role.setCanLogin(canLogin);
-        role.setIsSuperUser(true);
+        role.setIsSuperUser(false);
 
         role.setEmail(authentication.getEmail());
         if(token != null) {
