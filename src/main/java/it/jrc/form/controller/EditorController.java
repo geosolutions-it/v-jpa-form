@@ -181,6 +181,35 @@ public abstract class EditorController<T> extends Panel {
 
         return true;
     }
+    
+    protected boolean commitFormNoValidation() {
+
+        T entity = fgm.getEntity();
+
+        try {
+            fgm.commit();
+        } catch (CommitException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return false;
+        }
+
+        /*
+         * Subclasses may define tasks to perform pre commit.
+         */
+        doPreCommit(entity);
+
+        Object id = containerManager.addEntity(entity);
+
+        entity = containerManager.findEntity(id);
+        fgm.setEntity(entity);
+        /*
+         * Subclasses may define tasks to perform post-commit.
+         */
+        doPostCommit(entity);
+
+        return true;
+    }
 
     public void doCreate() {
         fgm.setEntity(containerManager.newEntity());
