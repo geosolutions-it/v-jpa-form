@@ -34,7 +34,7 @@
 		<mockito.version>1.9.5</mockito.version>
 		<junit.version>4.11</junit.version>
 		<tokenfield.version>7.0.1</tokenfield.version>
-		<v-leaflet.version>0.6.0</v-leaflet.version>
+		<v-leaflet.version>0.5.8-GEOSOLUTIONS</v-leaflet.version>
 		<v-guice.version>1.0.1</v-guice.version>
 	</properties>
 
@@ -152,11 +152,7 @@
 			<artifactId>v-leaflet</artifactId>
 			<version>${v-leaflet.version}</version>
 		</dependency>
-		<dependency>
-		   <groupId>org.vaadin.addon</groupId>
-		   <artifactId>v-leaflet-draw</artifactId>
-		   <version>${v-leaflet.version}</version>
-		</dependency>
+		
 
 		<!-- Guice -->
 		<dependency>
@@ -329,8 +325,8 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<configuration>
-						<source>1.7</source>
-						<target>1.7</target>
+						<source>1.6</source>
+						<target>1.6</target>
 					</configuration>
 				</plugin>
 			</plugins>
@@ -352,7 +348,7 @@
 	</pluginRepositories>
 
 	<repositories>
-
+    
 		<repository>
 			<id>objectdb</id>
 			<name>ObjectDB Repository</name>
