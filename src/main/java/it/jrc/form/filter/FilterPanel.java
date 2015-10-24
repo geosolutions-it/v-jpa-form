@@ -41,7 +41,16 @@ public class FilterPanel<T> extends FormLayout {
    * @param prop
    */
   public <X> FilterField<T, X> addFilterField(SingularAttribute<T, X> prop) {
-    FilterField<T, X> field = new FilterField<T, X>(prop, dao);
+    return addFilterField(prop, "");
+  }
+  
+  /**
+   * Adds a filter field with query
+   * 
+   * @param prop
+   */
+  public <X> FilterField<T, X> addFilterField(SingularAttribute<T, X> prop, String query) {
+    FilterField<T, X> field = new FilterField<T, X>(prop, dao, query);
     field.getField().setWidth(DEFAULT_WIDTH);
     if (!isVisible()) {
       setVisible(true);

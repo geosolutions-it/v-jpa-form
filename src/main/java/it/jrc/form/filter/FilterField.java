@@ -7,6 +7,7 @@ import it.jrc.persist.Dao;
 import java.util.List;
 
 import javax.persistence.Entity;
+import javax.persistence.TypedQuery;
 import javax.persistence.metamodel.SingularAttribute;
 
 import com.google.common.base.Strings;
@@ -46,7 +47,7 @@ public class FilterField<T, X> {
         }
     }
 
-    public FilterField(SingularAttribute<T, X> prop, Dao dao) {
+    public FilterField(SingularAttribute<T, X> prop, Dao dao, String query) {
         this.prop = prop;
         String name = AdminStringUtil.splitCamelCase(prop.getName());
         Class<X> javaType = prop.getJavaType();
@@ -76,8 +77,10 @@ public class FilterField<T, X> {
             this.field = f;
 
         } else if (prop.getJavaType().getAnnotation(Entity.class) != null) {
-
-            List<X> beans = dao.all(prop.getJavaType());
+            
+            TypedQuery<X> jpaQuery = dao.getEntityManager().createQuery(query, prop.getJavaType());
+            List<X> beans = jpaQuery.getResultList();
+            
             BeanItemContainer<X> bic = new BeanItemContainer<X>(
                     prop.getJavaType(), beans);
 
