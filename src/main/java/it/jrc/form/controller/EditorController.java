@@ -190,7 +190,7 @@ public abstract class EditorController<T> extends Panel {
         fgm.setEntity(entity);
     }
 
-    private void doDelete() {
+    protected void doDelete() {
         T entity = fgm.getEntity();
         if (entity == null) {
             logger.error("Delete attempted with null entity.");
