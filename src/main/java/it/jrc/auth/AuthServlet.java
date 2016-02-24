@@ -94,6 +94,7 @@ public class AuthServlet extends HttpServlet {
     private static final Object GOOGLE_ENDPOINT = "https://www.google.com/accounts/o8/ud";
     
     private static final String OPENIDCONNECT_TYPE = "openidconnect";
+    private static final String ECAS_TYPE = "ecas";
 
     private final Configuration templateConf;
 
@@ -172,6 +173,7 @@ public class AuthServlet extends HttpServlet {
 
         if (action != null && action.equals("logout")) {
             currentUser.logout();
+            request.getSession().removeAttribute("ecasPrincipal");
             showLoginPage(
                     request,
                     response,
@@ -298,6 +300,20 @@ public class AuthServlet extends HttpServlet {
         response.sendRedirect(url);
         return;
     }
+    
+    protected void redirectToEcas(HttpServletResponse response, URI loginUri)
+            throws IOException {
+
+        // StringBuilder sb = new StringBuilder();
+        // sb.append(loginUri.getAuthority());
+        // sb.append(loginUri.get)
+
+        String url = getEcasUrl(loginUri);
+        // sb.append("#");
+        // sb.append(fragment);
+        response.sendRedirect(url);
+        return;
+    }
 
     /**
      * Gets the realm (e.g. *.jrc.it) with wildcard subdomain
@@ -341,6 +357,22 @@ public class AuthServlet extends HttpServlet {
         }
         return fragment;
     }
+    
+    // FIXME login hardcode, replacing login with nothing
+    private String getEcasUrl(URI loginUri) {
+
+        String fragment = loginUri.getFragment();
+        URI loginURI;
+        try {
+            loginURI = new URI("http://" + loginUri.getAuthority()
+                    + loginUri.getPath().replace("login", "ecas/"));
+            return loginURI.toString();
+        } catch (URISyntaxException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return fragment;
+    }
 
     /**
      * Makes an openid request
@@ -354,7 +386,9 @@ public class AuthServlet extends HttpServlet {
     private void doOpenIdRequest(HttpServletRequest request,
             HttpServletResponse response, String lookup, URI loginUri, String type)
             throws IOException {
-        if(type.equalsIgnoreCase(OPENIDCONNECT_TYPE)) {
+    	if(type.equalsIgnoreCase(ECAS_TYPE)) {
+    		redirectToEcas(response, loginUri);
+    	} else if(type.equalsIgnoreCase(OPENIDCONNECT_TYPE)) {
             doOpenIdConnectRequest(request, response, lookup, loginUri);
         } else {
             doOAuthRequest(request, response, lookup, loginUri);

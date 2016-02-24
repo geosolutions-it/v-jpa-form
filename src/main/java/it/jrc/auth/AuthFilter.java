@@ -1,6 +1,7 @@
 package it.jrc.auth;
 
 import java.io.IOException;
+import java.security.Principal;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -18,6 +19,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 
+import eu.cec.digit.ecas.client.jaas.DetailedUser;
+
 /**
  * Denies access to all resources unless user is authenticated or it is the login page.
  * Must be after {@link SecurityFilter} in the chain.
@@ -32,6 +35,8 @@ public class AuthFilter implements Filter {
   
   private final String loginServletPath;
   private final String contextPath;
+  
+  public static final ThreadLocal<Principal> ecasPrincipal = new ThreadLocal<Principal>();
 
   @Inject
   public AuthFilter(@Named("login_servlet_path") String loginServletPath, @Named("context_path") String contextPath) {
@@ -44,7 +49,8 @@ public class AuthFilter implements Filter {
 
   public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) throws IOException, ServletException {
     
-    String servletPath = ((HttpServletRequest) req).getServletPath();
+    HttpServletRequest httpRequest = (HttpServletRequest)req;
+	String servletPath = httpRequest.getServletPath();
     
     /*
      * Allow unauthenticated requests to Vaadin themes and login servlets.
@@ -54,10 +60,29 @@ public class AuthFilter implements Filter {
       return;
     }
     
+    /*
+     * Allow unauthenticated requests if ecas principal is in session.
+     */
+    if((servletPath.startsWith("/VAADIN") || servletPath.startsWith("/UIDL") || servletPath.startsWith("/APP")) 
+    		&&  httpRequest.getSession().getAttribute("ecasPrincipal") != null) {
+    	chain.doFilter(req, resp);
+        return;
+    }
+    Principal principal = httpRequest.getUserPrincipal();
+    if(principal instanceof DetailedUser && servletPath.startsWith("/ecas/")) {
+    	httpRequest.getSession().setAttribute("ecasPrincipal", principal);
+    	ecasPrincipal.set(principal);
+    	chain.doFilter(req, resp);
+        return;
+    } else {
+    	ecasPrincipal.remove();
+    }
+    
     Subject subject = SecurityUtils.getSubject();
     
     if (!subject.isAuthenticated()) {
         
+    	
         
       //TODO: 
       //Causes the horrible exception message when session expires and VAADIN makes an ajax request.

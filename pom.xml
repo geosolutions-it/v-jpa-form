@@ -279,7 +279,12 @@
 			<artifactId>gson</artifactId>
 			<version>2.2.4</version>
 		</dependency>
-
+        <!-- ECAS -->
+        <dependency>
+            <groupId>eu.cec.digit.ecas</groupId>
+            <artifactId>ecas-client</artifactId>
+            <version>4.3.4</version>
+        </dependency>
 		<!-- Testing -->
 		<dependency>
 			<groupId>junit</groupId>
