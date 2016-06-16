@@ -35,7 +35,7 @@ public abstract class EditorController<T> extends Panel {
 
 //    private static final String EDITING_FORMAT_STRING = "Editing: %s";
 
-    private static final String SAVE_MESSAGE = "Saved successfully.";
+    private static final String SAVE_MESSAGE = "Thank you for submitting the data. The data set and the metadata will be reviewed and we keep you informed about the final publication. If we have questions, we will contact you by email.";
 
     private Logger logger = LoggerFactory.getLogger(EditorController.class);
 
@@ -178,7 +178,7 @@ public abstract class EditorController<T> extends Panel {
          * Subclasses may define tasks to perform post-commit.
          */
         doPostCommit(entity);
-
+        
         return true;
     }
 
