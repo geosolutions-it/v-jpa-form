@@ -40,4 +40,11 @@ public class DefaultEditorView<T> extends CssLayout implements IEditorView<T>  {
         return submitPanel;
     }
 
+
+	@Override
+	public void buildForm(List<FieldGroup<T>> fields, boolean isInspire) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

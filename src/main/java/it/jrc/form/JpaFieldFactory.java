@@ -30,6 +30,7 @@ import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.Field;
+import com.vaadin.ui.Link;
 import com.vaadin.ui.RichTextArea;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
@@ -104,7 +105,35 @@ public class JpaFieldFactory<T> {
         }
         return null;
     }
+    /**
+     * Creates a field using type information obtained from static metamodel
+     * properties.
+     * 
+     * @param prop
+     *            the property from the {@link StaticMetamodel}
+     */
+    public <X> Component addField(Attribute<? extends T, X> prop, SingularAttribute<?, ?> orderBy) {
 
+        Class<X> clazz = prop.getJavaType();
+
+        if (Enum.class.isAssignableFrom(clazz)) {
+            return addEnumField(prop);
+        } else if (clazz.equals(String.class)) {
+            return addTextField(prop);
+        } else if (Number.class.isAssignableFrom(clazz)) {
+            return addTextField(prop);
+        } else if (clazz.equals(Boolean.class)) {
+            return addBooleanField(prop);
+        } else if (clazz.equals(Date.class)) {
+            return addDateField(prop);
+        } else if (clazz.getAnnotation(Entity.class) != null) {
+            return addFkField(prop, orderBy);
+        } else if (clazz.equals(Set.class)) {
+            return addM2MField2(prop, orderBy);
+        }
+        return null;
+    }
+     
 
     public TextArea addTextArea(Attribute<? extends T, ?> prop) {
         TextArea f = new TextArea();
@@ -152,6 +181,19 @@ public class JpaFieldFactory<T> {
         cb.setWidth(DEFAULT_FIELD_WIDTH);
 
         List<?> list = dao.all(prop.getJavaType());
+
+        for (Object x : list) {
+            cb.addItem(x);
+        }
+        addField(prop, cb);
+        return cb;
+    }
+    
+    private ComboBox addFkField(Attribute<? extends T, ?> prop, SingularAttribute<?, ?> orderBy) {
+        ComboBox cb = new ComboBox();
+        cb.setWidth(DEFAULT_FIELD_WIDTH);
+
+        List<?> list = dao.all(prop.getJavaType(), orderBy);
 
         for (Object x : list) {
             cb.addItem(x);
@@ -225,11 +267,8 @@ public class JpaFieldFactory<T> {
         addField(prop, l);
         return l;
     }
-
-    // FIXME copy (overload of above) for quick fix
-    // Lost info
-    public <X> TwinColSelect addM2MField(Attribute<? extends T, ?> prop,
-            SingularAttribute<?, ?> orderBy) {
+    
+    private TwinColSelect addM2MField2(Attribute<? extends T, ?> prop, SingularAttribute<?, ?> orderBy) {
 
         TwinColSelect l = new TwinColSelect(AdminStringUtil.splitCamelCase(prop
                 .getName()));
@@ -238,8 +277,32 @@ public class JpaFieldFactory<T> {
         /*
          * Get the type the attribute contains
          */
-        Class<T> clazz = PluralAttribute.class.cast(prop).getElementType()
+        Class<?> clazz = PluralAttribute.class.cast(prop).getElementType()
                 .getJavaType();
+
+        List<?> objects = dao.all(clazz, orderBy);
+        for (Object object : objects) {
+            l.addItem(object);
+        }
+
+        l.setMultiSelect(true);
+
+        addField(prop, l);
+        return l;
+    }
+
+    // FIXME copy (overload of above) for quick fix
+    // Lost info
+    public <X> TwinColSelect addM2MField(Attribute<? extends T, ?> prop,
+            SingularAttribute<?, ?> orderBy) {
+
+        TwinColSelect l = new TwinColSelect(AdminStringUtil.splitCamelCase(prop.getName()));
+        l.setWidth("600px");
+
+        /*
+         * Get the type the attribute contains
+         */
+        Class<T> clazz = PluralAttribute.class.cast(prop).getElementType().getJavaType();
 
         List<T> objects = dao.all(clazz, orderBy);
 

@@ -46,7 +46,7 @@ public class FieldGroupManager<T> {
      * @return
      */
     public void commit() throws CommitException {
-        
+        System.out.println("commit()");
         for (FieldGroup<T> fgr : fieldGroupList) {
             
             BeanFieldGroup<T> fieldGroup = fgr.getFieldGroup();

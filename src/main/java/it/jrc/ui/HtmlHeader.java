@@ -14,6 +14,13 @@ public class HtmlHeader extends Label {
         //Why just calling super() doesn't work I don't know
         addStyleName(DISPLAY_PANEL_HEADER);
     }
+    public HtmlHeader(String content, ContentMode contentMode) {
+        setContentMode(ContentMode.HTML);
+        setValue(content);
+        
+        //Why just calling super() doesn't work I don't know
+        addStyleName(DISPLAY_PANEL_HEADER);
+    }
     
     public HtmlHeader() {
         setContentMode(ContentMode.HTML);

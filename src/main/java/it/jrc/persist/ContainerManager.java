@@ -40,7 +40,6 @@ public class ContainerManager<T> {
 
         container = new JPAContainer<T>(clazz);
         
-        
         MutableLocalEntityProvider<T> entityProvider = new MutableLocalEntityProvider<T>(clazz);
 //        LocalEntityProvider<T> entityProvider = new LocalEntityProvider<T>(clazz, dao);
         entityProvider.setEntityManagerProvider(dao);
@@ -49,7 +48,7 @@ public class ContainerManager<T> {
         container.setEntityProvider(entityProvider);
         //important! read the docs
         container.isAutoCommit();
-
+        container.refresh();
         
         RoleManager roleManager = dao.getRoleManager();
 //        String target = roleManager.getUrlForClass(clazz);
@@ -100,9 +99,11 @@ public class ContainerManager<T> {
          * more closely.
          */
         Object id = dao.getId(entity);
-//        System.out.println("Deleting: " + entity);
+        System.out.println("Deleting: " + entity);
         container.removeItem(id);
+        container.refresh();
         container.commit();
+        container.refresh();
     }
 
     public T findEntity(Object val) {
