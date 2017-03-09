@@ -33,7 +33,7 @@ import com.vaadin.ui.UI;
 
 /**
  * 
- * A simplified verion of {@link BaseEditor}
+ * A simplified version of {@link BaseEditor}
  * 
  * Probably do not require all the container stuff.
  * 
@@ -63,6 +63,14 @@ public abstract class EditorController<T> extends Panel {
     public interface EditCompleteListener<T> {
         
         public void onEditComplete(T entity);
+        
+    }
+    
+    public DeleteCompleteListener<T> deleteCompleteListener;
+    
+    public interface DeleteCompleteListener<T> {
+        
+        public void onDeleteComplete(T entity);
         
     }
 
@@ -173,7 +181,6 @@ public abstract class EditorController<T> extends Panel {
          */
         doPreCommit(entity);
         containerManager.refresh();
-        
         Object id = null;
         try {
         	id = containerManager.addEntity(entity);
@@ -232,6 +239,7 @@ public abstract class EditorController<T> extends Panel {
     protected void doPostDelete(T entity) {
     	System.out.println("doPostDelete, entity: " + entity);
     	containerManager.refresh();
+    	fireDeleteComplete(entity);
     }
 
     /**
@@ -239,7 +247,7 @@ public abstract class EditorController<T> extends Panel {
      * fixed.
      */
     protected void doPreCommit(T entity) {
-
+    	containerManager.refresh();
     }
 
     /**
@@ -253,13 +261,13 @@ public abstract class EditorController<T> extends Panel {
     	if (entity == null) {
         System.out.println("ENTITY IS NULL");
         }
+    	refresh();
         fireEditComplete(entity);
     }
 
     public void refresh() {
     	System.out.println("refresh, container:" + containerManager);
-        containerManager.refresh();
-    }
+            }
 
     public T getEntity() {
         return fgm.getEntity();
@@ -276,6 +284,16 @@ public abstract class EditorController<T> extends Panel {
     private void fireEditComplete(T entity) {
         if (editCompleteListener != null) {
             editCompleteListener.onEditComplete(entity);
+        }
+    }
+    
+    public void addDeleteCompleteListener(DeleteCompleteListener<T> listener) {
+        this.deleteCompleteListener = listener;
+    }
+    
+    protected void fireDeleteComplete(T entity) {
+        if (deleteCompleteListener != null) {
+        	deleteCompleteListener.onDeleteComplete(entity);
         }
     }
 }
