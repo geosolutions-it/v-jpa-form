@@ -13,20 +13,27 @@ import it.jrc.persist.Dao;
 
 import java.util.List;
 
+import javax.persistence.PersistenceException;
+import javax.validation.ConstraintViolationException;
+
+import org.hibernate.engine.jdbc.spi.SqlExceptionHelper;
+import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vaadin.dialogs.ConfirmDialog;
 
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
+import com.vaadin.server.ExternalResource;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.Link;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.UI;
 
 /**
  * 
- * A simplified verion of {@link BaseEditor}
+ * A simplified version of {@link BaseEditor}
  * 
  * Probably do not require all the container stuff.
  * 
@@ -36,7 +43,8 @@ public abstract class EditorController<T> extends Panel {
 //    private static final String EDITING_FORMAT_STRING = "Editing: %s";
 
     private static final String SAVE_MESSAGE = "Thank you for submitting the data. The data set and the metadata will be reviewed and we keep you informed about the final publication. If we have questions, we will contact you by email.";
-
+    private static final String ERROR_ENTITY_DUPLICATED = "The item you insterted already exists";
+    
     private Logger logger = LoggerFactory.getLogger(EditorController.class);
 
     protected Dao dao;
@@ -57,6 +65,14 @@ public abstract class EditorController<T> extends Panel {
         public void onEditComplete(T entity);
         
     }
+    
+    public DeleteCompleteListener<T> deleteCompleteListener;
+    
+    public interface DeleteCompleteListener<T> {
+        
+        public void onDeleteComplete(T entity);
+        
+    }
 
     public EditorController(final Class<T> clazz, final Dao dao) {
 
@@ -72,7 +88,7 @@ public abstract class EditorController<T> extends Panel {
     }
 
     /**
-     * Designed to be overridden to allow customised form construction.
+     * Designed to be overridden to allow customized form construction.
      * 
      * @param view
      */
@@ -81,7 +97,6 @@ public abstract class EditorController<T> extends Panel {
         this.setContent(view);
 
         view.buildForm(fgm.getFieldGroupReprs());
-
         buildSubmitPanel(view.getTopSubmitPanel());
 
     }
@@ -91,13 +106,18 @@ public abstract class EditorController<T> extends Panel {
         fgm.add(fieldGroupMeta);
         return fieldGroupMeta;
     }
+    
+   /* protected FieldGroup<T> addFieldGroupAsLink(String name, Link link) {
+        FieldGroup<T> fieldGroupMeta = ff.getFieldGroup(name, link);
+        fgm.add(fieldGroupMeta);
+        return fieldGroupMeta;
+    }*/
 
     protected void buildSubmitPanel(SubmitPanel submitPanel) {
         /*
          * Submit panel
          */
-        Button commit = ButtonFactory.getButton(
-                ButtonFactory.SAVE_BUTTON_CAPTION, ButtonFactory.SAVE_ICON);
+        Button commit = ButtonFactory.getButton(ButtonFactory.SAVE_BUTTON_CAPTION, ButtonFactory.SAVE_ICON);
         commit.setEnabled(containerManager.canUpdate());
 
         commit.addClickListener(new Button.ClickListener() {
@@ -106,10 +126,8 @@ public abstract class EditorController<T> extends Panel {
             }
         });
 
-        Button delete = ButtonFactory.getButton(
-                ButtonFactory.DELETE_BUTTON_CAPTION, ButtonFactory.DELETE_ICON);
+        Button delete = ButtonFactory.getButton(ButtonFactory.DELETE_BUTTON_CAPTION, ButtonFactory.DELETE_ICON);
         delete.setEnabled(containerManager.canDelete());
-
         delete.addClickListener(new Button.ClickListener() {
             public void buttonClick(ClickEvent event) {
 
@@ -120,14 +138,12 @@ public abstract class EditorController<T> extends Panel {
                             public void onClose(ConfirmDialog dialog) {
                                 if (dialog.isConfirmed()) {
                                     doDelete();
-
                                 }
                             }
 
                         });
             }
         });
-
         submitPanel.addLeft(commit);
         submitPanel.addRight(delete);
     }
@@ -146,7 +162,6 @@ public abstract class EditorController<T> extends Panel {
     protected boolean commitForm(boolean showNotification) {
 
         T entity = fgm.getEntity();
-
         boolean x = fgm.isValid();
         if (x == false) {
             Notification.show("Validation failed");
@@ -165,19 +180,34 @@ public abstract class EditorController<T> extends Panel {
          * Subclasses may define tasks to perform pre commit.
          */
         doPreCommit(entity);
+        containerManager.refresh();
+        Object id = null;
+        try {
+        	id = containerManager.addEntity(entity);
+        } catch (PersistenceException e) {
+            e.printStackTrace();
+            if (showNotification && (e.getCause().getCause() instanceof PSQLException)) {
+                Notification.show(ERROR_ENTITY_DUPLICATED);
+            }
+            return false;
+        }
+        
+        System.out.println("entity " + entity +" id "+ id);
+        if (containerManager.findEntity(id) != null) {
+        	
+        	/*if (showNotification) {
+                Notification.show(SAVE_MESSAGE);
+            }*/
 
-        Object id = containerManager.addEntity(entity);
-
-        if (showNotification) {
-            Notification.show(SAVE_MESSAGE);
+            entity = containerManager.findEntity(id);
+            fgm.setEntity(entity);
+            /*
+             * Subclasses may define tasks to perform post-commit.
+             */
+            doPostCommit(entity);
         }
 
-        entity = containerManager.findEntity(id);
-        fgm.setEntity(entity);
-        /*
-         * Subclasses may define tasks to perform post-commit.
-         */
-        doPostCommit(entity);
+        
         
         return true;
     }
@@ -192,6 +222,7 @@ public abstract class EditorController<T> extends Panel {
 
     protected void doDelete() {
         T entity = fgm.getEntity();
+        System.out.println("doDelete, entity: " + entity);
         if (entity == null) {
             logger.error("Delete attempted with null entity.");
             return;
@@ -206,7 +237,9 @@ public abstract class EditorController<T> extends Panel {
      * @param entity
      */
     protected void doPostDelete(T entity) {
-        // containerManager.refresh();
+    	System.out.println("doPostDelete, entity: " + entity);
+    	containerManager.refresh();
+    	fireDeleteComplete(entity);
     }
 
     /**
@@ -214,7 +247,7 @@ public abstract class EditorController<T> extends Panel {
      * fixed.
      */
     protected void doPreCommit(T entity) {
-
+    	containerManager.refresh();
     }
 
     /**
@@ -224,15 +257,17 @@ public abstract class EditorController<T> extends Panel {
      * @param entity
      */
     protected void doPostCommit(T entity) {
-        if (entity == null) {
+    	System.out.println("doPostCommit, entity: " + entity);
+    	if (entity == null) {
         System.out.println("ENTITY IS NULL");
         }
+    	refresh();
         fireEditComplete(entity);
     }
 
     public void refresh() {
-        containerManager.refresh();
-    }
+    	System.out.println("refresh, container:" + containerManager);
+            }
 
     public T getEntity() {
         return fgm.getEntity();
@@ -249,6 +284,16 @@ public abstract class EditorController<T> extends Panel {
     private void fireEditComplete(T entity) {
         if (editCompleteListener != null) {
             editCompleteListener.onEditComplete(entity);
+        }
+    }
+    
+    public void addDeleteCompleteListener(DeleteCompleteListener<T> listener) {
+        this.deleteCompleteListener = listener;
+    }
+    
+    protected void fireDeleteComplete(T entity) {
+        if (deleteCompleteListener != null) {
+        	deleteCompleteListener.onDeleteComplete(entity);
         }
     }
 }

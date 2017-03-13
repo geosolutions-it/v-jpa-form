@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.ui.Field;
+import com.vaadin.ui.Link;
 
 /**
  * A simple wrapper for a {@link BeanFieldGroup}
@@ -15,13 +16,16 @@ import com.vaadin.ui.Field;
 public class FieldGroup<T> {
     
     private BeanFieldGroup<T> fieldGroup;
+    private String label;
+    private Link link;
+    private String description;
     
     public FieldGroup(BeanFieldGroup<T> fieldGroup, String name, String description) {
         this.fieldGroup = fieldGroup;
         this.label = name;
         this.description = description;
     }
-
+    
     public BeanFieldGroup<T> getFieldGroup() {
         return fieldGroup;
     }
@@ -30,13 +34,13 @@ public class FieldGroup<T> {
         this.fieldGroup = fieldGroup;
     }
 
-    private String label;
-
     public String getLabel() {
         return label;
     }
-
-    private String description;
+    
+    public Link getLink() {
+        return link;
+    }
 
     public String getDescription() {
         return description;

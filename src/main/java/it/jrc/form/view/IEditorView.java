@@ -39,4 +39,6 @@ public interface IEditorView<T> extends Component {
      */
     public void buildForm(List<FieldGroup<T>> fields);
 
+    public void buildForm(List<FieldGroup<T>> fields, boolean isInspire);
+
 }

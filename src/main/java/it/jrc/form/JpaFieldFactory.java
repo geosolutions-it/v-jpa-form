@@ -30,18 +30,17 @@ import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.Field;
+import com.vaadin.ui.Link;
 import com.vaadin.ui.RichTextArea;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.TwinColSelect;
 
 /**
- * Generates field groups based on {@link StaticMetamodel} properties. This
- * provides a type-safe method of creating forms.
+ * Generates field groups based on {@link StaticMetamodel} properties. This provides a type-safe method of creating forms.
  * 
- * Most fields can be created with the addField(prop) method, however extra
- * methods have been provided for differentiating between various types of text
- * areas.
+ * Most fields can be created with the addField(prop) method, however extra methods have been provided for differentiating between various types of
+ * text areas.
  * 
  * Arbitrary fields can be added using the addField method.
  * 
@@ -52,290 +51,336 @@ import com.vaadin.ui.TwinColSelect;
  */
 public class JpaFieldFactory<T> {
 
-    private static final String NULL_REPRESENTATION = "";
-    private static final String DEFAULT_DATE_FORMAT = "yyyy-MM-dd";
-    private static final String DEFAULT_FIELD_WIDTH = "300px";
+	private static final String NULL_REPRESENTATION = "";
+	private static final String DEFAULT_DATE_FORMAT = "yyyy-MM-dd";
+	private static final String DEFAULT_FIELD_WIDTH = "300px";
 
-    private List<String> order = new ArrayList<String>();
-//    private List<String> disabledFields = new ArrayList<String>();
+	private List<String> order = new ArrayList<String>();
+	// private List<String> disabledFields = new ArrayList<String>();
 
-    private Map<String, Field<?>> fieldBuffer = new HashMap<String, Field<?>>();
-    private Dao dao;
-    private Class<T> clazz;
+	private Map<String, Field<?>> fieldBuffer = new HashMap<String, Field<?>>();
+	private Dao dao;
+	private Class<T> clazz;
 
-    // private ContainerManager<T> containerManager;
+	// private ContainerManager<T> containerManager;
 
-    public JpaFieldFactory(Dao dao, Class<T> clazz) {
-        this.dao = dao;
-        this.clazz = clazz;
-    }
+	public JpaFieldFactory(Dao dao, Class<T> clazz) {
+		this.dao = dao;
+		this.clazz = clazz;
+	}
 
-//    public void setDisabledFields(Attribute<T, ?>... prop) {
-//        for (int i = 0; i < prop.length; i++) {
-//            disabledFields.add(prop[i].getName());
-//        }
-//    }
+	// public void setDisabledFields(Attribute<T, ?>... prop) {
+	// for (int i = 0; i < prop.length; i++) {
+	// disabledFields.add(prop[i].getName());
+	// }
+	// }
 
-    /**
-     * Creates a field using type information obtained from static metamodel
-     * properties.
-     * 
-     * @param prop
-     *            the property from the {@link StaticMetamodel}
-     */
-    public <X> Component addField(Attribute<? extends T, X> prop) {
+	/**
+	 * Creates a field using type information obtained from static metamodel properties.
+	 * 
+	 * @param prop
+	 *            the property from the {@link StaticMetamodel}
+	 */
+	public <X> Component addField(Attribute<? extends T, X> prop) {
 
-        Class<X> clazz = prop.getJavaType();
+		Class<X> clazz = prop.getJavaType();
 
-        if (Enum.class.isAssignableFrom(clazz)) {
-            return addEnumField(prop);
-        } else if (clazz.equals(String.class)) {
-            return addTextField(prop);
-        } else if (Number.class.isAssignableFrom(clazz)) {
-            return addTextField(prop);
-        } else if (clazz.equals(Boolean.class)) {
-            return addBooleanField(prop);
-        } else if (clazz.equals(Date.class)) {
-            return addDateField(prop);
-        } else if (clazz.getAnnotation(Entity.class) != null) {
-            return addFkField(prop);
-        } else if (clazz.equals(Set.class)) {
-            return addM2MField(prop);
-        }
-        return null;
-    }
+		if (Enum.class.isAssignableFrom(clazz)) {
+			return addEnumField(prop);
+		} else if (clazz.equals(String.class)) {
+			return addTextField(prop);
+		} else if (Number.class.isAssignableFrom(clazz)) {
+			return addTextField(prop);
+		} else if (clazz.equals(Boolean.class)) {
+			return addBooleanField(prop);
+		} else if (clazz.equals(Date.class)) {
+			return addDateField(prop);
+		} else if (clazz.getAnnotation(Entity.class) != null) {
+			return addFkField(prop);
+		} else if (clazz.equals(Set.class)) {
+			return addM2MField(prop);
+		}
+		return null;
+	}
 
+	/**
+	 * Creates a field using type information obtained from static metamodel properties.
+	 * 
+	 * @param prop
+	 *            the property from the {@link StaticMetamodel}
+	 */
+	public <X> Component addField(Attribute<? extends T, X> prop, SingularAttribute<?, ?> orderBy) {
 
-    public TextArea addTextArea(Attribute<? extends T, ?> prop) {
-        TextArea f = new TextArea();
-        f.setNullRepresentation(NULL_REPRESENTATION);
-        f.setWidth(DEFAULT_FIELD_WIDTH);
-        addField(prop, f);
-        return f;
-    }
+		Class<X> clazz = prop.getJavaType();
 
-    public void addRichTextArea(Attribute<? extends T, ?> prop) {
-        RichTextArea f = new RichTextArea();
-        f.setNullRepresentation(NULL_REPRESENTATION);
-        f.setWidth(DEFAULT_FIELD_WIDTH);
-        addField(prop, f);
-    }
+		if (Enum.class.isAssignableFrom(clazz)) {
+			return addEnumField(prop);
+		} else if (clazz.equals(String.class)) {
+			return addTextField(prop);
+		} else if (Number.class.isAssignableFrom(clazz)) {
+			return addTextField(prop);
+		} else if (clazz.equals(Boolean.class)) {
+			return addBooleanField(prop);
+		} else if (clazz.equals(Date.class)) {
+			return addDateField(prop);
+		} else if (clazz.getAnnotation(Entity.class) != null) {
+			return addFkField(prop, orderBy);
+		} else if (clazz.equals(Set.class)) {
+			return addM2MField2(prop, orderBy);
+		}
+		return null;
+	}
 
-    public <X> void addTokenField(SetAttribute<? extends T, X> prop) {
-        TokenField f = new TokenField("", InsertPosition.AFTER);
-        Class<X> javaType = prop.getElementType().getJavaType();
-        BeanItemContainer<X> c = new BeanItemContainer<X>(javaType);
-        c.addAll(dao.all(javaType));
-        f.setContainerDataSource(c);
-        addField(prop, f);
-    }
+	public TextArea addTextArea(Attribute<? extends T, ?> prop) {
+		TextArea f = new TextArea();
+		f.setNullRepresentation(NULL_REPRESENTATION);
+		f.setWidth(DEFAULT_FIELD_WIDTH);
+		addField(prop, f);
+		return f;
+	}
 
-    public TextField addTextField(Attribute<? extends T, ?> prop) {
-        TextField f = new TextField();
-        f.setNullRepresentation(NULL_REPRESENTATION);
-        f.setWidth(DEFAULT_FIELD_WIDTH);
-        addField(prop, f);
-        return f;
-    }
+	public void addRichTextArea(Attribute<? extends T, ?> prop) {
+		RichTextArea f = new RichTextArea();
+		f.setNullRepresentation(NULL_REPRESENTATION);
+		f.setWidth(DEFAULT_FIELD_WIDTH);
+		addField(prop, f);
+	}
 
-    public void addColorField(String propName) {
-        ColorField f = new ColorField();
+	public <X> void addTokenField(SetAttribute<? extends T, X> prop) {
+		TokenField f = new TokenField("", InsertPosition.AFTER);
+		Class<X> javaType = prop.getElementType().getJavaType();
+		BeanItemContainer<X> c = new BeanItemContainer<X>(javaType);
+		c.addAll(dao.all(javaType));
+		f.setContainerDataSource(c);
+		addField(prop, f);
+	}
 
-        f.setCaption(AdminStringUtil.splitCamelCase(propName));
+	public TextField addTextField(Attribute<? extends T, ?> prop) {
+		TextField f = new TextField();
+		f.setNullRepresentation(NULL_REPRESENTATION);
+		f.setWidth(DEFAULT_FIELD_WIDTH);
+		addField(prop, f);
+		return f;
+	}
 
-        fieldBuffer.put(propName, f);
-        order.add(propName);
-    }
+	public void addColorField(String propName) {
+		ColorField f = new ColorField();
 
-    private ComboBox addFkField(Attribute<? extends T, ?> prop) {
-        ComboBox cb = new ComboBox();
-        cb.setWidth(DEFAULT_FIELD_WIDTH);
+		f.setCaption(AdminStringUtil.splitCamelCase(propName));
 
-        List<?> list = dao.all(prop.getJavaType());
+		fieldBuffer.put(propName, f);
+		order.add(propName);
+	}
 
-        for (Object x : list) {
-            cb.addItem(x);
-        }
-        addField(prop, cb);
-        return cb;
-    }
+	private ComboBox addFkField(Attribute<? extends T, ?> prop) {
+		ComboBox cb = new ComboBox();
+		cb.setWidth(DEFAULT_FIELD_WIDTH);
 
-    private ComboBox addEnumField(Attribute<? extends T, ?> prop) {
-        ComboBox cb = new ComboBox();
+		List<?> list = dao.all(prop.getJavaType());
 
-        Object[] consts = prop.getJavaType().getEnumConstants();
+		for (Object x : list) {
+			cb.addItem(x);
+		}
+		addField(prop, cb);
+		return cb;
+	}
 
-        for (int i = 0; i < consts.length; i++) {
-            cb.addItem(consts[i]);
-        }
-        addField(prop, cb);
-        return cb;
-    }
+	private ComboBox addFkField(Attribute<? extends T, ?> prop, SingularAttribute<?, ?> orderBy) {
+		ComboBox cb = new ComboBox();
+		cb.setWidth(DEFAULT_FIELD_WIDTH);
 
-    private CheckBox addBooleanField(Attribute<? extends T, ?> prop) {
-        CheckBox checkBox = new CheckBox();
-        addField(prop, checkBox);
-        return checkBox;
-    }
+		List<?> list = dao.all(prop.getJavaType(), orderBy);
 
-    public <X> SelectionTable<X> addSelectionTable(
-            Attribute<? extends T, X> prop) {
-        SelectionTable<X> selectionTable = new SelectionTable<X>(
-                prop.getJavaType(), dao);
-        // selectionTable.addColumns(attributes);
-        addField(prop, selectionTable);
-        return selectionTable;
-    }
+		for (Object x : list) {
+			cb.addItem(x);
+		}
+		addField(prop, cb);
+		return cb;
+	}
 
-    public <X> SelectOrCreateField<X> addSelectAndCreateField(
-            Attribute<? extends T, X> prop,
-            SingularAttribute<X, ?>... childProps) {
+	private ComboBox addEnumField(Attribute<? extends T, ?> prop) {
+		ComboBox cb = new ComboBox();
 
-        SelectOrCreateField<X> socf = new SelectOrCreateField<X>(
-                prop.getJavaType(), dao);
+		Object[] consts = prop.getJavaType().getEnumConstants();
 
-        for (int i = 0; i < childProps.length; i++) {
-            socf.addField(childProps[i]);
-        }
-        addField(prop, socf);
-        socf.init();
-        return socf;
+		for (int i = 0; i < consts.length; i++) {
+			cb.addItem(consts[i]);
+		}
+		addField(prop, cb);
+		return cb;
+	}
 
-    }
+	private CheckBox addBooleanField(Attribute<? extends T, ?> prop) {
+		CheckBox checkBox = new CheckBox();
+		addField(prop, checkBox);
+		return checkBox;
+	}
 
-    private TwinColSelect addM2MField(Attribute<? extends T, ?> prop) {
+	public <X> SelectionTable<X> addSelectionTable(Attribute<? extends T, X> prop) {
+		SelectionTable<X> selectionTable = new SelectionTable<X>(prop.getJavaType(), dao);
+		// selectionTable.addColumns(attributes);
+		addField(prop, selectionTable);
+		return selectionTable;
+	}
 
-        TwinColSelect l = new TwinColSelect(AdminStringUtil.splitCamelCase(prop
-                .getName()));
-        l.setWidth("600px");
+	public <X> SelectOrCreateField<X> addSelectAndCreateField(Attribute<? extends T, X> prop, SingularAttribute<X, ?>... childProps) {
 
-        /*
-         * Get the type the attribute contains
-         */
-        Class<?> clazz = PluralAttribute.class.cast(prop).getElementType()
-                .getJavaType();
+		SelectOrCreateField<X> socf = new SelectOrCreateField<X>(prop.getJavaType(), dao);
 
-        List<?> objects = dao.all(clazz);
-        for (Object object : objects) {
-            l.addItem(object);
-        }
+		for (int i = 0; i < childProps.length; i++) {
+			socf.addField(childProps[i]);
+		}
+		addField(prop, socf);
+		socf.init();
+		return socf;
 
-        l.setMultiSelect(true);
+	}
 
-        addField(prop, l);
-        return l;
-    }
+	private TwinColSelect addM2MField(Attribute<? extends T, ?> prop) {
 
-    // FIXME copy (overload of above) for quick fix
-    // Lost info
-    public <X> TwinColSelect addM2MField(Attribute<? extends T, ?> prop,
-            SingularAttribute<?, ?> orderBy) {
+		TwinColSelect l = new TwinColSelect(AdminStringUtil.splitCamelCase(prop.getName()));
+		l.setWidth("600px");
 
-        TwinColSelect l = new TwinColSelect(AdminStringUtil.splitCamelCase(prop
-                .getName()));
-        l.setWidth("600px");
+		/*
+		 * Get the type the attribute contains
+		 */
+		Class<?> clazz = PluralAttribute.class.cast(prop).getElementType().getJavaType();
 
-        /*
-         * Get the type the attribute contains
-         */
-        Class<T> clazz = PluralAttribute.class.cast(prop).getElementType()
-                .getJavaType();
+		List<?> objects = dao.all(clazz);
+		for (Object object : objects) {
+			l.addItem(object);
+		}
 
-        List<T> objects = dao.all(clazz, orderBy);
+		l.setMultiSelect(true);
 
-        for (Object object : objects) {
-            l.addItem(object);
-        }
+		addField(prop, l);
+		return l;
+	}
 
-        l.setMultiSelect(true);
+	private TwinColSelect addM2MField2(Attribute<? extends T, ?> prop, SingularAttribute<?, ?> orderBy) {
 
-        addField(prop, l);
-        return l;
-    }
+		TwinColSelect l = new TwinColSelect(AdminStringUtil.splitCamelCase(prop.getName()));
+		l.setWidth("600px");
 
-    private DateField addDateField(Attribute<? extends T, ?> prop) {
-        DateField dateField = new DateField();
-        dateField.setDateFormat(DEFAULT_DATE_FORMAT);
-        addField(prop, dateField);
-        return dateField;
-    }
+		/*
+		 * Get the type the attribute contains
+		 */
+		Class<?> clazz = PluralAttribute.class.cast(prop).getElementType().getJavaType();
 
-    /**
-     * @return the order in which the fields should be displayed on the form.
-     *         This is the same as the order they were added.
-     */
-    public List<String> getOrder() {
-        return order;
-    }
+		List<?> objects = dao.all(clazz, orderBy);
+		for (Object object : objects) {
+			l.addItem(object);
+		}
 
-    /**
-     * Adds a field to the temporary cache. Ensures order is also set.
-     * 
-     * @param prop
-     *            the metamodel property
-     * @param f
-     *            the field
-     */
-    public void addField(Attribute<? extends T, ?> prop, Field<?> f) {
+		l.setMultiSelect(true);
 
-        String propName = prop.getName();
+		addField(prop, l);
+		return l;
+	}
 
-        String fieldDescription = dao.getFieldDescription(prop);
+	// FIXME copy (overload of above) for quick fix
+	// Lost info
+	public <X> TwinColSelect addM2MField(Attribute<? extends T, ?> prop, SingularAttribute<?, ?> orderBy) {
 
-        /**
-         * setDescription removed from Field interface in 7, therefore we have
-         * to do this separately for every field type, or more simply up-cast
-         * like here.
-         */
-        if (f instanceof AbstractField<?> && fieldDescription != null) {
-            ((AbstractField<?>) f).setDescription(fieldDescription);
-        }
+		TwinColSelect l = new TwinColSelect(AdminStringUtil.splitCamelCase(prop.getName()));
+		l.setWidth("600px");
 
-        f.setCaption(AdminStringUtil.splitCamelCase(propName));
+		/*
+		 * Get the type the attribute contains
+		 */
+		Class<T> clazz = PluralAttribute.class.cast(prop).getElementType().getJavaType();
 
-        fieldBuffer.put(propName, f);
-        order.add(propName);
-    }
-    
-//    public <X> void setFieldValue(Attribute<? extends T, X> prop, X value) {
-//        fields.g
-//    }
+		List<T> objects = dao.all(clazz, orderBy);
 
-    /**
-     * Using a string for the property is useful for transient fields, where the
-     * {@link StaticMetamodel} doesn't work.
-     * 
-     * @param propName
-     * @param f
-     */
-    public void addField(String propName, Field<?> f) {
-        fieldBuffer.put(propName, f);
-        order.add(propName);
-    }
+		for (Object object : objects) {
+			l.addItem(object);
+		}
 
-    /**
-     * This works but is very hacky
-     * 
-     * @return
-     */
-    @Deprecated
-    public FieldGroup<T> getFieldGroup(String name) {
-        
+		l.setMultiSelect(true);
 
-        BeanFieldGroup<T> bfg = new BeanFieldGroup<T>(clazz);
+		addField(prop, l);
+		return l;
+	}
 
-        for (String propName : order) {
-            Field<?> f = fieldBuffer.get(propName);
-            if (f != null) {
-                bfg.bind(f, propName);
-            }
-        }
+	private DateField addDateField(Attribute<? extends T, ?> prop) {
+		DateField dateField = new DateField();
+		dateField.setDateFormat(DEFAULT_DATE_FORMAT);
+		addField(prop, dateField);
+		return dateField;
+	}
 
-        //FIXME Description from database??
-        FieldGroup<T> fg = new FieldGroup<T>(bfg, name, null);
+	/**
+	 * @return the order in which the fields should be displayed on the form. This is the same as the order they were added.
+	 */
+	public List<String> getOrder() {
+		return order;
+	}
 
-        fieldBuffer.clear();
-        return fg;
-    }
+	/**
+	 * Adds a field to the temporary cache. Ensures order is also set.
+	 * 
+	 * @param prop
+	 *            the metamodel property
+	 * @param f
+	 *            the field
+	 */
+	public void addField(Attribute<? extends T, ?> prop, Field<?> f) {
+
+		String propName = prop.getName();
+
+		String fieldDescription = dao.getFieldDescription(prop);
+
+		/**
+		 * setDescription removed from Field interface in 7, therefore we have to do this separately for every field type, or more simply up-cast like
+		 * here.
+		 */
+		if (f instanceof AbstractField<?> && fieldDescription != null) {
+			((AbstractField<?>) f).setDescription(fieldDescription);
+		}
+
+		f.setCaption(AdminStringUtil.splitCamelCase(propName));
+
+		fieldBuffer.put(propName, f);
+		order.add(propName);
+	}
+
+	// public <X> void setFieldValue(Attribute<? extends T, X> prop, X value) {
+	// fields.g
+	// }
+
+	/**
+	 * Using a string for the property is useful for transient fields, where the {@link StaticMetamodel} doesn't work.
+	 * 
+	 * @param propName
+	 * @param f
+	 */
+	public void addField(String propName, Field<?> f) {
+		fieldBuffer.put(propName, f);
+		order.add(propName);
+	}
+
+	/**
+	 * This works but is very hacky
+	 * 
+	 * @return
+	 */
+	@Deprecated
+	public FieldGroup<T> getFieldGroup(String name) {
+
+		BeanFieldGroup<T> bfg = new BeanFieldGroup<T>(clazz);
+
+		for (String propName : order) {
+			Field<?> f = fieldBuffer.get(propName);
+			if (f != null) {
+				bfg.bind(f, propName);
+			}
+		}
+
+		// FIXME Description from database??
+		FieldGroup<T> fg = new FieldGroup<T>(bfg, name, null);
+
+		fieldBuffer.clear();
+		return fg;
+	}
 
 }
