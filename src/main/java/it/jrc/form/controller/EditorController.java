@@ -173,7 +173,7 @@ public abstract class EditorController<T> extends Panel {
         T entity = fgm.getEntity();
         boolean x = fgm.isValid();
         if (x == false) {
-            Notification.show("Validation failed");
+            Notification.show("Validation failed. Please compile the field indicated by a red esclamation mask");
             return false;
         }
 
